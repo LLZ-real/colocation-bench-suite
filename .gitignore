@@ -1,0 +1,41 @@
+# Local configs
+conf/env.sh
+conf/machine.yaml
+
+# Results and logs
+results/*
+!results/.gitkeep
+*.log
+*.out
+*.err
+*.tmp
+*.pid
+perf.data
+*.perf
+*.csv
+*.jsonl
+
+# External benchmark suites
+DCPerf/
+cpu2017/
+SPEC2017/
+spark-*/
+iBench/
+Intel_PT_Trace_Processing/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Archives
+*.tar
+*.tgz
+*.tar.gz
+*.xz
