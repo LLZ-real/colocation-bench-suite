@@ -1,4 +1,4 @@
-# Local configs
+# Local machine config
 conf/env.sh
 conf/machine.yaml
 
@@ -12,16 +12,19 @@ results/*
 *.pid
 perf.data
 *.perf
-*.csv
 *.jsonl
 
-# External benchmark suites
+# External benchmark suites / large dependencies
 DCPerf/
+iBench/
 cpu2017/
 SPEC2017/
 spark-*/
-iBench/
 Intel_PT_Trace_Processing/
+
+# Local generated experiment outputs
+/home/
+*.csv
 
 # Python
 __pycache__/
@@ -29,7 +32,7 @@ __pycache__/
 .venv/
 venv/
 
-# OS/editor
+# IDE / OS
 .DS_Store
 .vscode/
 .idea/
@@ -38,4 +41,5 @@ venv/
 *.tar
 *.tgz
 *.tar.gz
+*.zip
 *.xz
