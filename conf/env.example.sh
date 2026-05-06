@@ -29,3 +29,8 @@ export TAO_INTERFACE_NAME="eno1"
 # Network / system tuning
 export ULIMIT_NOFILE="65535"
 export TAO_SERVER_PID_PATTERN="tao_bench_server"
+
+export OFFLINE_CONTAINER="clab-offline"
+export OFFLINE_CPUSET="16,18,20,22,24,26,28,30"
+export OFFLINE_MEMS="0"
+export IBENCH_DIR="/home/lilinzhen/iBench"

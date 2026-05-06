@@ -15,3 +15,19 @@ cleanup_taobench() {
   pkill -f "vmstat" 2>/dev/null || true
   pkill -f "iostat" 2>/dev/null || true
 }
+
+cleanup_offline() {
+  echo "[cleanup] stopping offline workloads..."
+
+  docker exec clab-offline pkill -9 -f 'memCap' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f 'memBw' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f './src/cpu' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f '/workspace/iBench/src/cpu' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f 'iperf3' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f 'stress' 2>/dev/null || true
+
+  # For zombie/defunct processes, killing is not enough; remove the container.
+  docker rm -f clab-offline 2>/dev/null || true
+
+  pkill -f "perf stat" 2>/dev/null || true
+}
