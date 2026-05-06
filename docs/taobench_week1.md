@@ -80,24 +80,70 @@ Run directory:
 
 ```text
 /home/lilinzhen/colocate_lab/results/cbs/20260505_234755_taobench_baseline_curve
-clients_per_threadQPSP99 msIPCcache miss ratebranch miss ratecontext switches
-10021872.1753.2470.94130.04720.016491863445
-20024293.21109.0550.97770.05220.016586233226
-30028009.19148.4791.02790.05510.015285323764
-40032581.86191.4871.04780.06490.014180540313
-50039813.21203.7751.07230.06420.014178073646
-60050585.29203.7751.11720.08080.013174844166
-70070136.77181.2471.11710.09700.013171999180
-800102102.90144.3831.13640.14530.012066989181
-Observations
-QPS increases monotonically from 21.9k to 102.1k.
-P99 latency increases until around clients_per_thread=500/600, then decreases at higher client pressure.
-IPC increases from 0.94 to 1.13 as request pressure increases.
-Cache miss rate increases substantially from 4.7% to 14.5%.
-Branch miss rate decreases slightly as load increases.
-Context switches decrease as load increases.
-Tentative Week 2 online load choice
+```
 
-Use clients_per_thread=500 as the primary fixed online load for initial offline interference experiments.
+## Data Table
 
-Also keep clients_per_thread=700 as a high-throughput secondary point.
+| clients_per_thread | QPS       | P99 ms   | IPC   | cache miss rate | branch miss rate | context switches |
+|--------------------|-----------|----------|-------|----------------|------------------|------------------|
+| 100                | 21872.17  | 53.247   | 0.9413 | 0.0472          | 0.0164           | 91863445         |
+| 200                | 24293.21  | 109.055  | 0.9777 | 0.0522          | 0.0165           | 86233226         |
+| 300                | 28009.19  | 148.479  | 1.0279 | 0.0551          | 0.0152           | 85323764         |
+| 400                | 32581.86  | 191.487  | 1.0478 | 0.0649          | 0.0141           | 80540313         |
+| 500                | 39813.21  | 203.775  | 1.0723 | 0.0642          | 0.0141           | 78073646         |
+| 600                | 50585.29  | 203.775  | 1.1172 | 0.0808          | 0.0131           | 74844166         |
+| 700                | 70136.77  | 181.247  | 1.1171 | 0.0970          | 0.0131           | 71999180         |
+| 800                | 102102.90 | 144.383  | 1.1364 | 0.1453          | 0.0120           | 66989181         |
+
+## Observations
+
+- **QPS** increases monotonically from 21.9k to 102.1k.
+- **P99 latency** increases until around `clients_per_thread = 500/600`, then decreases at higher client pressure.
+- **IPC** increases from 0.94 to 1.13 as request pressure increases.
+- **Cache miss rate** increases substantially from 4.7% to 14.5%.
+- **Branch miss rate** decreases slightly as load increases.
+- **Context switches** decrease as load increases.
+
+## Tentative Week 2 Online Load Choice
+
+- Use **`clients_per_thread = 500`** as the primary fixed online load for initial offline interference experiments.
+- Also keep **`clients_per_thread = 700`** as a high-throughput secondary point.
+
+## Final Week 1 baseline decision
+
+A no-perf control experiment confirms that host-side `perf stat` significantly perturbs TaoBench measured performance.
+
+Command:
+
+```bash
+ENABLE_PERF=0 \
+SERVER_BOOTSTRAP_WAIT=180 \
+PREWARM_ROUNDS=8 \
+PREWARM_CLIENTS=900 \
+PREWARM_TEST_TIME=60 \
+CLIENT_LIST="900 900 900" \
+CLIENT_TEST_TIME=60 \
+bash experiments/taobench_baseline_curve.sh
+Run directory:
+
+/home/lilinzhen/colocate_lab/results/cbs/20260506_153919_taobench_baseline_curve
+
+Prewarm converged at round 7:
+
+roundQPSP99 ms
+6167457.72109.055
+7166761.14108.031
+
+Measured results without perf:
+
+idxclients_per_threadQPSP99 ms
+1900166151.0198.303
+2900166402.0598.303
+3900166070.1698.815
+
+Decision:
+
+Use clients_per_thread=900 as the primary online load for Week 2.
+Use request-driven prewarm before all measured runs.
+Use ENABLE_PERF=0 for performance experiments.
+Run PMU profiling separately from performance measurement.

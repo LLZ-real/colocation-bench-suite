@@ -5,10 +5,11 @@ source "$(dirname "$0")/../../conf/env.sh"
 source "$(dirname "$0")/../../scripts/common.sh"
 
 SERVER_LOG="${1:-/workspace/results/taobench_server.log}"
-WARMUP_TIME="${2:-120}"
+WARMUP_TIME="${2:-2400}"
 TEST_TIME="${3:-7200}"
 
 log "Starting TaoBench server in ${SERVER_CONTAINER}..."
+log "server warmup_time=${WARMUP_TIME}, test_time=${TEST_TIME}"
 
 docker exec -d "${SERVER_CONTAINER}" bash -c "
 cd /workspace/DCPerf &&
