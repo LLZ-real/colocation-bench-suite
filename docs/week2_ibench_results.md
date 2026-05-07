@@ -126,3 +126,42 @@ Current Week 2 results:
 Conclusion:
 
 The memBw intensity sweep shows a monotonic degradation trend. Under the current physical-core-isolated placement, TaoBench shows no significant degradation from CPU-only interference, but it is highly sensitive to same-socket memory bandwidth interference. This supports the hypothesis that, under physical-core isolation without SMT sharing, the dominant colocation interference path is shared socket-level memory subsystem contention rather than private core execution-resource contention under this no-SMT-sharing placement.
+
+## L3 interference results
+
+Current summary, using TaoBench-only baseline:
+
+- Baseline QPS: 165508.28
+- Baseline P99: 99.327 ms
+
+| offline | workers | QPS | QPS degradation | P99 ms | P99 slowdown |
+|---|---:|---:|---:|---:|---:|
+| none | 0 | 165508.28 | 0.0% | 99.327 | 1.00x |
+| CPU | 8 | 166133.17 | -0.4% | 98.303 | 0.99x |
+| memBw | 2 | 150847.49 | 8.9% | 107.007 | 1.08x |
+| memBw | 4 | 108052.41 | 34.7% | 148.479 | 1.49x |
+| memBw | 8 | 68547.89 | 58.6% | 232.447 | 2.34x |
+| memBw | 8 repeat | 66628.93 | 59.7% | 239.615 | 2.41x |
+| L3 | 2 | 142615.00 | 13.8% | 113.151 | 1.14x |
+| L3 | 4 | 92445.59 | 44.1% | 173.055 | 1.74x |
+| L3 | 8 | 73893.81 | 55.4% | 218.111 | 2.20x |
+
+## Interpretation
+
+The CPU-only workload does not cause significant degradation under the current physical-core-isolated placement. This does not mean CPU interference is generally harmless; it means that, in this configuration, the offline CPU workload does not share SMT siblings or private core resources with the TaoBench server.
+
+Both memBw and L3 interference cause substantial degradation, and the degradation increases with worker count. This indicates that TaoBench is sensitive to same-socket shared cache and memory-subsystem contention.
+
+The strongest observed degradation comes from memBw=8:
+
+- QPS drops by about 59%.
+- P99 latency increases by about 2.4x.
+
+L3=8 is also severe:
+
+- QPS drops by about 55%.
+- P99 latency increases by about 2.2x.
+
+Overall conclusion:
+
+Under same-socket physical-core isolation, the dominant colocation interference path for TaoBench is shared LLC / memory subsystem contention, not private CPU-core execution-resource contention.

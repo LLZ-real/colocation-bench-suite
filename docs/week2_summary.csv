@@ -6,3 +6,6 @@ ibench_membw,8,900,68547.89,232.447,/home/lilinzhen/colocate_lab/results/cbs/202
 ibench_membw,8,900,66628.93,239.615,/home/lilinzhen/colocate_lab/results/cbs/20260506_221649_week2_taobench_ibench_membw_repeat_ibench_membw_8
 ibench_membw,4,900,108052.41,148.479,/home/lilinzhen/colocate_lab/results/cbs/20260506_230924_week2_taobench_ibench_membw_w4_ibench_membw_4
 ibench_membw,2,900,150847.49,107.007,/home/lilinzhen/colocate_lab/results/cbs/20260507_103310_week2_taobench_ibench_membw_w2_ibench_membw_2
+ibench_l3,8,900,73893.81,218.111,/home/lilinzhen/colocate_lab/results/cbs/20260507_130557_week2_taobench_ibench_l3_ibench_l3_8
+ibench_l3,4,900,92445.59,173.055,/home/lilinzhen/colocate_lab/results/cbs/20260507_140821_week2_taobench_ibench_l3_w4_ibench_l3_4
+ibench_l3,2,900,142615.0,113.151,/home/lilinzhen/colocate_lab/results/cbs/20260507_194805_week2_taobench_ibench_l3_w2_ibench_l3_2

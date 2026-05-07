@@ -10,6 +10,7 @@ patterns = [
     "*week2_taobench_ibench_cpu*",
     "*week2_taobench_ibench_membw*",
     "*week2_taobench_ibench_memcap*",
+    "*week2_taobench_ibench_l3*"
 ]
 
 rows = []
