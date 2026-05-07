@@ -1,0 +1,8 @@
+offline_type,offline_param,clients_per_thread,qps,gets_p99_ms,qps_degradation_pct,p99_slowdown,run_dir
+none,,900,165508.28,99.327,0.00,1.00,/home/lilinzhen/colocate_lab/results/cbs/20260506_172911_week2_taobench_baseline_none_
+ibench_cpu,30,900,164615.12,99.327,0.54,1.00,/home/lilinzhen/colocate_lab/results/cbs/20260506_181223_week2_taobench_ibench_cpu_ibench_cpu_30
+ibench_cpu,8,900,166133.17,98.303,-0.38,0.99,/home/lilinzhen/colocate_lab/results/cbs/20260506_190533_week2_taobench_ibench_cpu_ibench_cpu_8
+ibench_membw,8,900,68547.89,232.447,58.58,2.34,/home/lilinzhen/colocate_lab/results/cbs/20260506_211421_week2_taobench_ibench_membw_ibench_membw_8
+ibench_membw,8,900,66628.93,239.615,59.74,2.41,/home/lilinzhen/colocate_lab/results/cbs/20260506_221649_week2_taobench_ibench_membw_repeat_ibench_membw_8
+ibench_membw,4,900,108052.41,148.479,34.71,1.49,/home/lilinzhen/colocate_lab/results/cbs/20260506_230924_week2_taobench_ibench_membw_w4_ibench_membw_4
+ibench_membw,2,900,150847.49,107.007,8.86,1.08,/home/lilinzhen/colocate_lab/results/cbs/20260507_103310_week2_taobench_ibench_membw_w2_ibench_membw_2

@@ -69,3 +69,60 @@ This supports the working hypothesis that, without hyperthreading/core sharing, 
 3. Run a memBw intensity sweep, for example workers = 2, 4, 8.
 4. Add iBench l3 interference to evaluate LLC sensitivity.
 5. Keep PMU/perf profiling separate from primary performance experiments.
+
+## memBw reproducibility and intensity sweep
+
+### memBw=8 reproducibility
+
+| run | QPS | P99 ms |
+|---|---:|---:|
+| memBw=8 first | 68547.89 | 232.447 |
+| memBw=8 repeat | 66628.93 | 239.615 |
+
+The memBw=8 result is reproducible. The two runs differ by only about 2.8% in QPS and about 3.1% in P99 latency.
+
+### memBw=4 result
+
+| workload | QPS | P99 ms |
+|---|---:|---:|
+| TaoBench + memBw=4 | 108052.41 | 148.479 |
+
+### Current intensity curve
+
+Baseline used for approximate degradation:
+
+- QPS_baseline: 166000
+- P99_baseline_ms: 98.3
+
+| workload | QPS | QPS degradation | P99 ms | P99 slowdown |
+|---|---:|---:|---:|---:|
+| baseline | 166000 | 0% | 98.3 | 1.00x |
+| memBw=4 | 108052.41 | ~34.9% | 148.479 | ~1.51x |
+| memBw=8 first | 68547.89 | ~58.7% | 232.447 | ~2.36x |
+| memBw=8 repeat | 66628.93 | ~59.9% | 239.615 | ~2.44x |
+
+Interpretation:
+
+The degradation increases with the number of memBw workers. This supports the conclusion that TaoBench is highly sensitive to same-socket memory bandwidth pressure under physical-core isolation.
+
+## Final memBw intensity sweep summary
+
+Baseline:
+
+| workload | QPS | P99 ms |
+|---|---:|---:|
+| TaoBench only | 165508.28 | 99.327 |
+
+Current Week 2 results:
+
+| workload | workers | QPS | QPS degradation | P99 ms | P99 slowdown |
+|---|---:|---:|---:|---:|---:|
+| iBench CPU | 8 | 166133.17 | -0.4% | 98.303 | 0.99x |
+| memBw | 2 | 150847.49 | 8.9% | 107.007 | 1.08x |
+| memBw | 4 | 108052.41 | 34.7% | 148.479 | 1.49x |
+| memBw | 8 | 68547.89 | 58.6% | 232.447 | 2.34x |
+| memBw | 8 repeat | 66628.93 | 59.7% | 239.615 | 2.41x |
+
+Conclusion:
+
+The memBw intensity sweep shows a monotonic degradation trend. TaoBench is robust to isolated CPU-only interference but highly sensitive to same-socket memory bandwidth interference. This supports the hypothesis that, under physical-core isolation without SMT sharing, the dominant colocation interference path is shared socket-level memory subsystem contention rather than private core execution-resource contention.
