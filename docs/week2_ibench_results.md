@@ -27,7 +27,7 @@ Stable no-perf TaoBench baseline:
 
 Interpretation:
 
-CPU-only interference on separate physical cores has little effect when SMT is not shared. This is consistent with the expectation that isolated CPU-only workloads do not strongly compete for the online server's private execution resources, L1 cache, or L2 cache.
+Under the current placement, CPU-only interference does not cause significant degradation because the offline CPU workload runs on different physical cores and does not share SMT siblings with the online server. This is consistent with the expectation that isolated CPU-only workloads do not strongly compete for the online server's private execution resources, L1 cache, or L2 cache.
 
 ## iBench memBw interference
 
@@ -58,7 +58,7 @@ Approximate degradation compared with stable baseline:
 
 ## Current conclusion
 
-Under physical-core isolation without SMT sharing, memory-bandwidth interference has a strong impact on TaoBench, while CPU-only interference has little impact.
+Under physical-core isolation without SMT sharing, memory-bandwidth interference has a strong impact on TaoBench, while CPU-only interference under the current physical-core-isolated placement does not cause significant degradation.
 
 This supports the working hypothesis that, without hyperthreading/core sharing, the main colocation interference path is not private CPU execution resources, but shared socket-level resources such as LLC, memory bandwidth, and the memory controller.
 
@@ -125,4 +125,4 @@ Current Week 2 results:
 
 Conclusion:
 
-The memBw intensity sweep shows a monotonic degradation trend. TaoBench is robust to isolated CPU-only interference but highly sensitive to same-socket memory bandwidth interference. This supports the hypothesis that, under physical-core isolation without SMT sharing, the dominant colocation interference path is shared socket-level memory subsystem contention rather than private core execution-resource contention.
+The memBw intensity sweep shows a monotonic degradation trend. Under the current physical-core-isolated placement, TaoBench shows no significant degradation from CPU-only interference, but it is highly sensitive to same-socket memory bandwidth interference. This supports the hypothesis that, under physical-core isolation without SMT sharing, the dominant colocation interference path is shared socket-level memory subsystem contention rather than private core execution-resource contention under this no-SMT-sharing placement.
