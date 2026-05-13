@@ -165,3 +165,13 @@ L3=8 is also severe:
 Overall conclusion:
 
 Under same-socket physical-core isolation, the dominant colocation interference path for TaoBench is shared LLC / memory subsystem contention, not private CPU-core execution-resource contention.
+
+## Note on original iBench memCap
+
+The original iBench `memCap` workload was inspected and found to use the command-line argument as duration in seconds, not as memory size in GB.
+
+The source code maps approximately the full system memory size and repeatedly performs `memcpy` over half of that region. Therefore, `memCap 4` does not mean 4GB memory pressure; it means running the full-memory copy loop for 4 seconds of CPU time.
+
+As a result, the original `memCap` is not used as a controlled memory-capacity interference source in the current formal results. The previous `memCap=15` run is marked invalid because it caused abnormal TaoBench behavior and missing QPS/P99 output, likely due to excessive memory pressure or OOM-like effects.
+
+For controlled memory-capacity experiments, a separate fixed-size memory holder/toucher should be implemented.

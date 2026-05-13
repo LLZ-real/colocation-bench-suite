@@ -25,6 +25,10 @@ cleanup_offline() {
   docker exec clab-offline pkill -9 -f '/workspace/iBench/src/cpu' 2>/dev/null || true
   docker exec clab-offline pkill -9 -f 'iperf3' 2>/dev/null || true
   docker exec clab-offline pkill -9 -f 'stress' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f 'runcpu' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f 'specrun' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f 'mcf' 2>/dev/null || true
+  docker exec clab-offline pkill -9 -f 'lbm' 2>/dev/null || true
 
   # For zombie/defunct processes, killing is not enough; remove the container.
   docker rm -f clab-offline 2>/dev/null || true
