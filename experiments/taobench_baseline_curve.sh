@@ -27,23 +27,30 @@ save_machine_topology "${RUN_DIR}/machine_topology"
 write_config_snapshot "${RUN_DIR}/config.env"
 
 # Keep sudo valid during long runs.
-sudo -v
-(
-  while true; do
-    sudo -n true 2>/dev/null || exit
-    sleep 60
-  done
-) &
-SUDO_KEEPALIVE_PID=$!
+ENABLE_SUDO="${ENABLE_SUDO:-1}"
+if [ "${ENABLE_SUDO}" = "1" ]; then
+  sudo -v
+  (
+    while true; do
+      sudo -n true 2>/dev/null || exit
+      sleep 60
+    done
+  ) &
+  SUDO_KEEPALIVE_PID=$!
+fi
 
 log "Creating containers..."
 bash "${CBS_ROOT}/containers/create_taobench_server.sh"
 bash "${CBS_ROOT}/containers/create_taobench_loadgen.sh"
 
 log "Applying network sysctl..."
-sudo -n sysctl -w net.ipv4.ip_local_port_range="1024 65535" || true
-sudo -n sysctl -w net.ipv4.tcp_tw_reuse=1 || true
-sudo -n sysctl -w net.ipv4.tcp_fin_timeout=15 || true
+if [ "${ENABLE_SUDO}" = "1" ]; then
+  sudo -n sysctl -w net.ipv4.ip_local_port_range="1024 65535" || true
+  sudo -n sysctl -w net.ipv4.tcp_tw_reuse=1 || true
+  sudo -n sysctl -w net.ipv4.tcp_fin_timeout=15 || true
+else
+  log "Skipping network sysctl because ENABLE_SUDO=0"
+fi
 
 SERVER_LOG="/workspace/results/$(basename "${RUN_DIR}")/logs/server.log"
 mkdir -p "${RUN_DIR}/logs"

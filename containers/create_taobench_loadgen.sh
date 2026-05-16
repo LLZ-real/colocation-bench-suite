@@ -10,7 +10,7 @@ log "Removing old ${LOADGEN_CONTAINER} if exists..."
 docker rm -f "${LOADGEN_CONTAINER}" 2>/dev/null || true
 
 log "Creating ${LOADGEN_CONTAINER}..."
-docker run -d --name "${LOADGEN_CONTAINER}" \
+docker run -d --init --name "${LOADGEN_CONTAINER}" \
   --network host \
   --privileged \
   --cpuset-cpus="${LOADGEN_CPUSET}" \

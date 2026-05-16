@@ -20,7 +20,7 @@ log "Removing old ${OFFLINE_CONTAINER} if exists..."
 docker rm -f "${OFFLINE_CONTAINER}" 2>/dev/null || true
 
 log "Creating ${OFFLINE_CONTAINER}..."
-docker run -d --name "${OFFLINE_CONTAINER}" \
+docker run -d --init --name "${OFFLINE_CONTAINER}" \
   --network host \
   --privileged \
   --cpuset-cpus="${OFFLINE_CPUSET}" \

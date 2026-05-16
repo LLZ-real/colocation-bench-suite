@@ -10,7 +10,7 @@ log "Removing old ${SERVER_CONTAINER} if exists..."
 docker rm -f "${SERVER_CONTAINER}" 2>/dev/null || true
 
 log "Creating ${SERVER_CONTAINER}..."
-docker run -d --name "${SERVER_CONTAINER}" \
+docker run -d --init --name "${SERVER_CONTAINER}" \
   --network host \
   --privileged \
   --cpuset-cpus="${SERVER_CPUSET}" \

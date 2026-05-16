@@ -72,14 +72,17 @@ write_config_snapshot "${RUN_DIR}/config.env"
 # Sudo keepalive
 # ------------------------------------------------------------
 
-sudo -v
-(
-  while true; do
-    sudo -n true 2>/dev/null || exit
-    sleep 60
-  done
-) &
-SUDO_KEEPALIVE_PID=$!
+ENABLE_SUDO="${ENABLE_SUDO:-1}"
+if [ "${ENABLE_SUDO}" = "1" ]; then
+  sudo -v
+  (
+    while true; do
+      sudo -n true 2>/dev/null || exit
+      sleep 60
+    done
+  ) &
+  SUDO_KEEPALIVE_PID=$!
+fi
 
 # ------------------------------------------------------------
 # Create containers
@@ -95,9 +98,13 @@ bash "${CBS_ROOT}/containers/create_offline.sh"
 # ------------------------------------------------------------
 
 log "Applying network sysctl..."
-sudo -n sysctl -w net.ipv4.ip_local_port_range="1024 65535" || true
-sudo -n sysctl -w net.ipv4.tcp_tw_reuse=1 || true
-sudo -n sysctl -w net.ipv4.tcp_fin_timeout=15 || true
+if [ "${ENABLE_SUDO}" = "1" ]; then
+  sudo -n sysctl -w net.ipv4.ip_local_port_range="1024 65535" || true
+  sudo -n sysctl -w net.ipv4.tcp_tw_reuse=1 || true
+  sudo -n sysctl -w net.ipv4.tcp_fin_timeout=15 || true
+else
+  log "Skipping network sysctl because ENABLE_SUDO=0"
+fi
 
 # ------------------------------------------------------------
 # Start TaoBench server
