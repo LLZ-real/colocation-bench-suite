@@ -1,0 +1,15 @@
+phase,offline_type,offline_param,offline_label,clients_per_thread,qps,qps_degradation_pct,gets_p99_ms,p99_slowdown,run_dir,notes
+baseline,none,,none,900,165508.28,0.0,99.327,1.00,/home/lilinzhen/colocate_lab/results/cbs/20260506_172911_week2_taobench_baseline_none_,TaoBench only stable baseline
+week2,ibench_cpu,8,w8,900,166133.17,-0.4,98.303,0.99,/home/lilinzhen/colocate_lab/results/cbs/20260506_190533_week2_taobench_ibench_cpu_ibench_cpu_8,CPU interference on separate physical cores
+week2,ibench_cpu,30,w30,900,164615.12,0.5,99.327,1.00,/home/lilinzhen/colocate_lab/results/cbs/20260506_181223_week2_taobench_ibench_cpu_ibench_cpu_30,CPU interference on separate physical cores
+week2,ibench_membw,2,w2,900,150847.49,8.9,107.007,1.08,/home/lilinzhen/colocate_lab/results/cbs/20260507_103310_week2_taobench_ibench_membw_w2_ibench_membw_2,Synthetic memory bandwidth interference
+week2,ibench_membw,4,w4,900,108052.41,34.7,148.479,1.49,/home/lilinzhen/colocate_lab/results/cbs/20260506_230924_week2_taobench_ibench_membw_w4_ibench_membw_4,Synthetic memory bandwidth interference
+week2,ibench_membw,8,w8,900,68547.89,58.6,232.447,2.34,/home/lilinzhen/colocate_lab/results/cbs/20260506_211421_week2_taobench_ibench_membw_ibench_membw_8,Synthetic memory bandwidth interference
+week2,ibench_membw,8,w8_repeat,900,66628.93,59.7,239.615,2.41,/home/lilinzhen/colocate_lab/results/cbs/20260506_221649_week2_taobench_ibench_membw_repeat_ibench_membw_8,Synthetic memory bandwidth interference repeat
+week2,ibench_l3,2,w2,900,142615.0,13.8,113.151,1.14,/home/lilinzhen/colocate_lab/results/cbs/20260507_194805_week2_taobench_ibench_l3_w2_ibench_l3_2,Synthetic LLC/cache interference
+week2,ibench_l3,4,w4,900,92445.59,44.1,173.055,1.74,/home/lilinzhen/colocate_lab/results/cbs/20260507_140821_week2_taobench_ibench_l3_w4_ibench_l3_4,Synthetic LLC/cache interference
+week2,ibench_l3,8,w8,900,73893.81,55.4,218.111,2.20,/home/lilinzhen/colocate_lab/results/cbs/20260507_130557_week2_taobench_ibench_l3_ibench_l3_8,Synthetic LLC/cache interference
+week3,spec_mcf,,train_c1,900,162973.17,1.5,100.351,1.01,/home/lilinzhen/colocate_lab/results/cbs/20260513_154412_week3_taobench_spec_mcf_train_spec_mcf_,SPEC 505.mcf_r train 1 copy
+week3,spec_mcf,,ref_c8,900,116962.26,29.3,149.503,1.51,/home/lilinzhen/colocate_lab/results/cbs/20260513_165627_week3_taobench_spec_mcf_ref_c8_spec_mcf_,SPEC 505.mcf_r ref_c8
+week3,spec_lbm,,ref_c8,900,57720.51,65.1,276.479,2.78,/home/lilinzhen/colocate_lab/results/cbs/20260513_174153_week3_taobench_spec_lbm_ref_c8_spec_lbm_,SPEC 519.lbm_r ref_c8
+week3,spec_lbm,,ref_c8_repeat,900,56349.39,66.0,284.671,2.87,/home/lilinzhen/colocate_lab/results/cbs/20260519_230739_week3_taobench_spec_lbm_ref_c8_repeat_spec_lbm_ref_c8_repeat,SPEC 519.lbm_r ref 8 copies repeat
