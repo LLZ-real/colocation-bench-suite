@@ -43,6 +43,9 @@ save_machine_topology() {
   lscpu > "${out_dir}/lscpu.txt" || true
   lscpu -e=CPU,CORE,SOCKET,NODE,ONLINE,MAXMHZ,MINMHZ > "${out_dir}/lscpu_e.txt" || true
   numactl -H > "${out_dir}/numactl_H.txt" 2>/dev/null || true
+  free -h > "${out_dir}/free_h.txt" || true
+  uname -a > "${out_dir}/uname_a.txt" || true
+  docker version > "${out_dir}/docker_version.txt" 2>&1 || true
   cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list 2>/dev/null | sort -u > "${out_dir}/thread_siblings.txt" || true
 }
 

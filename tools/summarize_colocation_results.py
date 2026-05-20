@@ -29,7 +29,7 @@ MANUAL_ROWS = [
     {
         "phase": "baseline",
         "offline_type": "none",
-        "offline_param": "",
+        "offline_param": "none",
         "offline_label": "none",
         "clients_per_thread": "900",
         "qps": "165508.28",
@@ -81,6 +81,12 @@ def infer_spec_label(run_dir: Path, row: Dict[str, str]) -> str:
     label = (row.get("offline_label") or "").strip()
     if label:
         return label
+
+    # Old Week 3 summaries used offline_param as the semantic SPEC label.
+    # Keep runtime params and report labels separate in the cleaned CSV.
+    old_param = (row.get("offline_param") or "").strip()
+    if re.fullmatch(r"(train|test|ref)_c\d+(_repeat)?", old_param):
+        return old_param
 
     name = run_dir.name
 
@@ -161,14 +167,14 @@ def normalize_row(row: Dict[str, str], run_dir: Path) -> Optional[Dict[str, str]
     if offline_type.startswith("spec_"):
         # Important: SPEC should not use offline_param for ref_c8/train_c1.
         # SPEC runtime parameters are SPEC_SIZE/SPEC_COPIES, while label stores semantic info.
-        offline_param = ""
+        offline_param = "none"
         offline_label = infer_spec_label(run_dir, row)
     elif offline_type.startswith("ibench_"):
         # Important: iBench offline_param is the real runtime parameter.
         offline_param = (row.get("offline_param") or "").strip()
         offline_label = infer_ibench_label(row, run_dir)
     elif offline_type == "none":
-        offline_param = ""
+        offline_param = "none"
         offline_label = "none"
     else:
         offline_param = (row.get("offline_param") or "").strip()
@@ -228,6 +234,14 @@ def add_degradation(row: Dict[str, str]) -> Dict[str, str]:
         row["p99_slowdown"] = ""
 
     return row
+
+
+def output_row(row: Dict[str, str]) -> Dict[str, str]:
+    """
+    Return exactly the cleaned CSV schema, in FIELDS order.
+    This avoids old/new summary.csv formats leaking extra or shifted fields.
+    """
+    return {field: row.get(field, "") for field in FIELDS}
 
 
 def read_summary(summary_path: Path) -> List[Dict[str, str]]:
@@ -338,7 +352,18 @@ def main():
         writer = csv.DictWriter(f, fieldnames=FIELDS)
         writer.writeheader()
         for r in rows:
-            writer.writerow({k: r.get(k, "") for k in FIELDS})
+            writer.writerow(output_row(r))
+
+    with OUT_CSV.open(newline="") as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        expected_cols = len(header)
+        for line_no, row in enumerate(reader, start=2):
+            if len(row) != expected_cols:
+                raise RuntimeError(
+                    f"{OUT_CSV}:{line_no} has {len(row)} columns; "
+                    f"expected {expected_cols}"
+                )
 
     print(f"[OK] wrote {OUT_CSV}")
     print()
