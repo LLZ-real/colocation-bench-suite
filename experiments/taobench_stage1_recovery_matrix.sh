@@ -79,14 +79,37 @@ cleanup_sudo_keepalive() {
   fi
 }
 
-cleanup_all() {
-  log "Cleaning up..."
+# cleanup_all() {
+#   log "Cleaning up..."
+#   cleanup_sudo_keepalive || true
+#   cleanup_offline || true
+#   cleanup_taobench || true
+# }
+
+on_exit() {
+  local code=$?
+  log "Exiting with code=${code}. Cleaning up..."
   cleanup_sudo_keepalive || true
   cleanup_offline || true
   cleanup_taobench || true
+  exit "${code}"
 }
 
-trap cleanup_all EXIT INT TERM
+on_interrupt() {
+  log "Interrupted. Cleaning up and exiting..."
+
+  # 避免 exit 130 再触发 EXIT trap 导致重复 cleanup
+  trap - EXIT
+
+  cleanup_sudo_keepalive || true
+  cleanup_offline || true
+  cleanup_taobench || true
+
+  exit 130
+}
+
+trap on_exit EXIT
+trap on_interrupt INT TERM
 
 parse_json_field() {
   local json_file="$1"
@@ -259,7 +282,7 @@ run_client_once() {
   bash "${CBS_ROOT}/online/taobench/run_client.sh" \
     "${clients}" \
     "${test_time}" \
-    "${log_file}" || true
+    "${log_file}" 
 
   python3 "${CBS_ROOT}/parsers/parse_taobench_client.py" \
     "${log_file}" \
@@ -443,6 +466,21 @@ run_measured_repeats() {
   done
 }
 
+recreate_offline_container() {
+  local condition_id="${1:-unknown}"
+
+  log "Recreating offline container for condition=${condition_id}..."
+
+  # cleanup_offline 会删除 clab-offline，所以删完必须重建
+  cleanup_offline || true
+
+  bash "${CBS_ROOT}/containers/create_offline.sh"
+
+  docker inspect "${OFFLINE_CONTAINER}" \
+    > "${RUN_DIR}/machine_topology/offline_container_${condition_id}.inspect.json" \
+    2>/dev/null || true
+}
+
 run_condition() {
   local condition_id="$1"
   local offline_type="$2"
@@ -462,17 +500,21 @@ run_condition() {
   log "spec_copies=${spec_copies}"
   log "============================================================"
 
-  log "Stopping previous offline workload if any..."
-  cleanup_offline || true
+  # 每个 condition 开始前，保证 offline container 存在且是干净的
+  recreate_offline_container "${condition_id}"
 
+  # baseline_none 紧跟完整 8 轮 prewarm，不需要 recovery prewarm
   if [[ "${condition_id}" != "baseline_none" ]]; then
     log "Cooldown before recovery prewarm: ${OFFLINE_COOLDOWN_WAIT}s"
     sleep "${OFFLINE_COOLDOWN_WAIT}"
+
+    # 此时没有 offline workload，做一次 recovery prewarm
     recovery_prewarm "${condition_id}"
   else
     log "Skipping recovery prewarm for baseline_none because it follows full prewarm."
   fi
 
+  # 启动当前 condition 的 offline workload
   start_offline \
     "${offline_type}" \
     "${offline_param}" \
@@ -481,6 +523,7 @@ run_condition() {
     "${spec_copies}" \
     "${offline_log}"
 
+  # 正式测量
   run_measured_repeats \
     "${condition_id}" \
     "${offline_type}" \
@@ -490,6 +533,8 @@ run_condition() {
     "${spec_copies}" \
     "${offline_log}"
 
+  # 当前 condition 结束后，停止 offline workload
+  # 注意：这会删除 clab-offline，所以后面 condition 会重新创建
   if [[ "${offline_type}" != "none" ]]; then
     log "Stopping offline workload after condition=${condition_id}"
     cleanup_offline || true

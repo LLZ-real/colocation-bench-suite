@@ -1,0 +1,19 @@
+condition,offline_type,offline_label,qps,qps_degradation_pct,p99_ms,p99_slowdown,notes
+baseline_none,none,none,166694.23,0.08,97.791,1.00,initial measured baseline
+ibench_cpu_w8,ibench_cpu,w8,166607.64,0.13,97.791,1.00,CPU-only interference is negligible
+ibench_membw_w2,ibench_membw,w2,150923.56,9.53,106.495,1.09,memory bandwidth weak pressure
+ibench_membw_w4,ibench_membw,w4,109800.06,34.18,146.431,1.50,memory bandwidth medium pressure
+ibench_membw_w8,ibench_membw,w8,69587.24,58.29,231.423,2.37,memory bandwidth strong pressure
+baseline_after_membw,none,none,166751.71,0.04,97.791,1.00,baseline checkpoint after membw
+ibench_l3_w2,ibench_l3,w2,143943.48,13.72,112.639,1.15,L3 weak pressure
+ibench_l3_w4,ibench_l3,w4,92737.33,44.41,174.079,1.78,L3 medium pressure
+ibench_l3_w8,ibench_l3,w8,75716.84,54.61,218.111,2.23,L3 strong pressure
+baseline_after_l3,none,none,167262.31,-0.26,97.791,1.00,baseline checkpoint after L3
+spec_mcf_ref_c2,spec_mcf,ref_c2,159582.86,4.34,101.375,1.04,SPEC mcf weak pressure
+spec_mcf_ref_c4,spec_mcf,ref_c4,148293.52,11.11,108.031,1.10,SPEC mcf medium pressure
+spec_mcf_ref_c8,spec_mcf,ref_c8,122542.17,26.54,146.431,1.50,SPEC mcf strong pressure
+baseline_after_mcf,none,none,166706.14,0.07,97.791,1.00,baseline checkpoint after mcf
+spec_lbm_ref_c2,spec_lbm,ref_c2,143514.52,13.97,111.615,1.14,SPEC lbm weak pressure
+spec_lbm_ref_c4,spec_lbm,ref_c4,96334.77,42.25,166.911,1.71,SPEC lbm medium pressure
+spec_lbm_ref_c8,spec_lbm,ref_c8,59903.95,64.09,268.287,2.74,SPEC lbm strong pressure
+baseline_final,none,none,166714.79,0.07,97.791,1.00,final baseline checkpoint
