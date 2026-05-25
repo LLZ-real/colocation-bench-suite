@@ -20,7 +20,7 @@ source "${CBS_ROOT}/scripts/cleanup.sh"
 # Global experiment parameters
 # ----------------------------
 
-EXP_NAME="${EXP_NAME:-stage1_recovery_matrix}"
+EXP_NAME="${EXP_NAME:-stage1_baseline_only}"
 
 CLIENTS="${CLIENTS_PER_THREAD:-900}"
 CLIENT_TEST_TIME="${CLIENT_TEST_TIME:-300}"
@@ -499,6 +499,7 @@ run_measured_repeats() {
       "${offline_log}" \
       "${RUN_DIR}" \
       ""
+
     log "Measured result: condition=${condition_id}, repeat=${repeat_id}/${MEASURE_REPEATS}, qps=${qps}, p99=${p99}"
 
     if [[ "${repeat_id}" != "${MEASURE_REPEATS}" ]]; then
@@ -584,54 +585,8 @@ run_condition() {
 }
 
 run_stage1_matrix() {
-  # ------------------------------------------------------------
-  # Baseline
-  # ------------------------------------------------------------
+  # Baseline-only calibration.
   run_condition "baseline_none" "none" "" "none" "" ""
-
-  # ------------------------------------------------------------
-  # iBench CPU sanity
-  # ------------------------------------------------------------
-  run_condition "ibench_cpu_w8" "ibench_cpu" "8" "w8" "" ""
-
-  # ------------------------------------------------------------
-  # iBench memory bandwidth gradient
-  # ------------------------------------------------------------
-  run_condition "ibench_membw_w2" "ibench_membw" "2" "w2" "" ""
-  run_condition "ibench_membw_w4" "ibench_membw" "4" "w4" "" ""
-  run_condition "ibench_membw_w8" "ibench_membw" "8" "w8" "" ""
-
-  # Baseline checkpoint after memory bandwidth workloads
-  run_condition "baseline_after_membw" "none" "" "none" "" ""
-
-  # ------------------------------------------------------------
-  # iBench L3 / LLC gradient
-  # ------------------------------------------------------------
-  run_condition "ibench_l3_w2" "ibench_l3" "2" "w2" "" ""
-  run_condition "ibench_l3_w4" "ibench_l3" "4" "w4" "" ""
-  run_condition "ibench_l3_w8" "ibench_l3" "8" "w8" "" ""
-
-  # Baseline checkpoint after L3 workloads
-  run_condition "baseline_after_l3" "none" "" "none" "" ""
-
-  # ------------------------------------------------------------
-  # SPEC mcf gradient
-  # ------------------------------------------------------------
-  run_condition "spec_mcf_ref_c2" "spec_mcf" "" "ref_c2" "ref" "2"
-  run_condition "spec_mcf_ref_c4" "spec_mcf" "" "ref_c4" "ref" "4"
-  run_condition "spec_mcf_ref_c8" "spec_mcf" "" "ref_c8" "ref" "8"
-
-  # Baseline checkpoint after mcf
-  run_condition "baseline_after_mcf" "none" "" "none" "" ""
-
-  # ------------------------------------------------------------
-  # SPEC lbm gradient
-  # ------------------------------------------------------------
-  run_condition "spec_lbm_ref_c2" "spec_lbm" "" "ref_c2" "ref" "2"
-  run_condition "spec_lbm_ref_c4" "spec_lbm" "" "ref_c4" "ref" "4"
-  run_condition "spec_lbm_ref_c8" "spec_lbm" "" "ref_c8" "ref" "8"
-
-  # Final baseline checkpoint
   run_condition "baseline_final" "none" "" "none" "" ""
 }
 

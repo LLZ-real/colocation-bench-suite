@@ -15,11 +15,11 @@ export SERVER_CONTAINER="clab-server"
 export LOADGEN_CONTAINER="clab-loadgen"
 
 # CPU / NUMA placement
-export SERVER_CPUSET="0,2,4,6,8,10,12,14"
-export SERVER_MEMS="0"
+export SERVER_CPUSET="${SERVER_CPUSET:-0,2,4,6,8,10,12,14}"
+export SERVER_MEMS="${SERVER_MEMS:-0}"
 
-export LOADGEN_CPUSET="1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31"
-export LOADGEN_MEMS="1"
+export LOADGEN_CPUSET="${LOADGEN_CPUSET:-1,3,5,7,9,11,13,15,33,35,37,39,41,43,45,47}"
+export LOADGEN_MEMS="${LOADGEN_MEMS:-1}"
 
 # TaoBench default params
 export TAO_MEMSIZE="16"
@@ -31,7 +31,7 @@ export ULIMIT_NOFILE="65535"
 export TAO_SERVER_PID_PATTERN="tao_bench_server"
 
 export OFFLINE_CONTAINER="clab-offline"
-export OFFLINE_CPUSET="16,18,20,22,24,26,28,30"
-export OFFLINE_MEMS="0"
+export OFFLINE_CPUSET="${OFFLINE_CPUSET:-16,18,20,22,24,26,28,30}"
+export OFFLINE_MEMS="${OFFLINE_MEMS:-0}"
 export IBENCH_DIR="/home/lilinzhen/iBench"
 export SPEC_DIR="/home/lilinzhen/cpu2017"

@@ -13,6 +13,19 @@ cleanup_sudo_keepalive() {
   fi
 }
 
+csv_append_row() {
+  python3 - "$SUMMARY" "$@" <<'PY'
+import csv
+import sys
+
+path = sys.argv[1]
+row = sys.argv[2:]
+
+with open(path, "a", newline="") as f:
+    csv.writer(f).writerow(row)
+PY
+}
+
 cleanup_all() {
   cleanup_sudo_keepalive
   cleanup_offline
@@ -254,7 +267,34 @@ for I in $(seq 1 "${MEASURE_REPEATS}"); do
 
   NOTES=""
 
-  echo "$(date -Iseconds),${EXP_NAME},${I},${OFFLINE_TYPE},${OFFLINE_PARAM},${OFFLINE_LABEL},${SPEC_SIZE},${SPEC_COPIES},${CLIENTS},${CLIENT_TEST_TIME},${CLIENT_WARMUP_TIME},${PREWARM_ROUNDS},${PREWARM_CLIENTS},${PREWARM_TEST_TIME},${SERVER_CPUSET},${SERVER_MEMS},${LOADGEN_CPUSET},${LOADGEN_MEMS},${OFFLINE_CPUSET},${OFFLINE_MEMS},${QPS},${P99},${LOG_FILE},${JSON_FILE},${OFFLINE_LOG},${RUN_DIR},${NOTES}" >> "${SUMMARY}"
+  csv_append_row \
+    "$(date -Iseconds)" \
+    "${EXP_NAME}" \
+    "${I}" \
+    "${OFFLINE_TYPE}" \
+    "${OFFLINE_PARAM}" \
+    "${OFFLINE_LABEL}" \
+    "${SPEC_SIZE}" \
+    "${SPEC_COPIES}" \
+    "${CLIENTS}" \
+    "${CLIENT_TEST_TIME}" \
+    "${CLIENT_WARMUP_TIME}" \
+    "${PREWARM_ROUNDS}" \
+    "${PREWARM_CLIENTS}" \
+    "${PREWARM_TEST_TIME}" \
+    "${SERVER_CPUSET}" \
+    "${SERVER_MEMS}" \
+    "${LOADGEN_CPUSET}" \
+    "${LOADGEN_MEMS}" \
+    "${OFFLINE_CPUSET}" \
+    "${OFFLINE_MEMS}" \
+    "${QPS}" \
+    "${P99}" \
+    "${LOG_FILE}" \
+    "${JSON_FILE}" \
+    "${OFFLINE_LOG}" \
+    "${RUN_DIR}" \
+    "${NOTES}"
 
   log "Repeat ${I}: qps=${QPS}, p99=${P99}"
 
