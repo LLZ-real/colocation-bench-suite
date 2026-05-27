@@ -135,10 +135,13 @@ if [[ "${CHECK_DOCKER_IMAGE}" == "1" ]]; then
       test -d benchmarks/tao_bench
       test -d benchmarks/tao_bench_autoscale
       test -d packages/tao_bench
+      test ! -d results
+      test ! -d logs
+      ! find . -maxdepth 1 \( -name "benchmark_metrics_*" -o -name "*.log" \) | grep -q .
     ' >/dev/null 2>&1; then
       pass "image-baked DCPerf/TaoBench verified"
     else
-      fail "image does not contain a usable /workspace/DCPerf TaoBench install" || status=1
+      fail "image does not contain a clean usable /workspace/DCPerf TaoBench install" || status=1
     fi
   fi
 fi

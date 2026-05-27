@@ -186,8 +186,10 @@ SERVER_LOG="/workspace/results/$(basename "${RUN_DIR}")/logs/server.log"
 OFFLINE_LOG="/workspace/results/$(basename "${RUN_DIR}")/logs/offline_${OFFLINE_TYPE}_${OFFLINE_LABEL}.log"
 CLIENT_LOG="${RUN_DIR}/raw/client_${OFFLINE_TYPE}_${OFFLINE_LABEL}.log"
 CLIENT_JSON="${RUN_DIR}/parsed/client_${OFFLINE_TYPE}_${OFFLINE_LABEL}.json"
+SERVER_STATE_DIR="/workspace/results/$(basename "${RUN_DIR}")/dcperf_state/server"
+LOADGEN_STATE_DIR="/workspace/results/$(basename "${RUN_DIR}")/dcperf_state/loadgen"
 
-app_run bash "${CBS_ROOT}/online/taobench/start_server.sh" "${SERVER_LOG}" "${TAO_SERVER_WARMUP_TIME}" "${TAO_SERVER_TEST_TIME}"
+app_run bash "${CBS_ROOT}/online/taobench/start_server.sh" "${SERVER_LOG}" "${TAO_SERVER_WARMUP_TIME}" "${TAO_SERVER_TEST_TIME}" "${SERVER_STATE_DIR}"
 if [[ "${DRY_RUN}" != "1" ]]; then
   log "Waiting for TaoBench server bootstrap: ${SERVER_BOOTSTRAP_WAIT}s"
   sleep "${SERVER_BOOTSTRAP_WAIT}"
@@ -199,7 +201,7 @@ if [[ "${OFFLINE_TYPE}" != "none" && "${DRY_RUN}" != "1" ]]; then
   sleep "${OFFLINE_STABILIZE_WAIT}"
 fi
 
-app_run env CLIENT_WARMUP_TIME="${CLIENT_WARMUP_TIME}" bash "${CBS_ROOT}/online/taobench/run_client.sh" "${CLIENTS_PER_THREAD}" "${CLIENT_TEST_TIME}" "${CLIENT_LOG}"
+app_run env CLIENT_WARMUP_TIME="${CLIENT_WARMUP_TIME}" bash "${CBS_ROOT}/online/taobench/run_client.sh" "${CLIENTS_PER_THREAD}" "${CLIENT_TEST_TIME}" "${CLIENT_LOG}" "${LOADGEN_STATE_DIR}"
 
 if [[ "${DRY_RUN}" != "1" ]]; then
   python3 "${CBS_ROOT}/parsers/parse_taobench_client.py" "${CLIENT_LOG}" --json-out "${CLIENT_JSON}" || true

@@ -73,9 +73,19 @@ COPY DCPerf/ /workspace/DCPerf/
 
 RUN ldconfig \
     && chmod +x /workspace/DCPerf/benchpress_cli.py \
+    && if [ ! -f /workspace/DCPerf/benchmarks/tao_bench/certs/example.key ]; then \
+      mkdir -p /workspace/DCPerf/benchmarks/tao_bench/certs; \
+      openssl req -x509 -newkey rsa:2048 -nodes \
+        -keyout /workspace/DCPerf/benchmarks/tao_bench/certs/example.key \
+        -out /workspace/DCPerf/benchmarks/tao_bench/certs/example.crt \
+        -subj "/CN=taobench.local" -days 3650 >/dev/null 2>&1; \
+    fi \
     && test -d /workspace/DCPerf/benchmarks/tao_bench \
     && test -d /workspace/DCPerf/benchmarks/tao_bench_autoscale \
     && test -d /workspace/DCPerf/packages/tao_bench \
+    && test ! -d /workspace/DCPerf/results \
+    && test ! -d /workspace/DCPerf/logs \
+    && ! find /workspace/DCPerf -maxdepth 1 \( -name 'benchmark_metrics_*' -o -name '*.log' \) | grep -q . \
     && ldd /workspace/DCPerf/benchmarks/tao_bench/tao_bench_server \
     && ldd /workspace/DCPerf/benchmarks/tao_bench/tao_bench_client \
     && python3 - <<'PY'

@@ -25,6 +25,9 @@ test -x ./benchpress_cli.py
 test -d benchmarks/tao_bench
 test -d benchmarks/tao_bench_autoscale
 test -d packages/tao_bench
+test ! -d results
+test ! -d logs
+! find . -maxdepth 1 \( -name "benchmark_metrics_*" -o -name "*.log" \) | grep -q .
 openssl version
 ldconfig -p | grep -E "libgflags|libssl" >/dev/null
 '

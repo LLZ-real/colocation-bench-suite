@@ -49,7 +49,13 @@ rsync -a --delete \
   --exclude '.git/' \
   --exclude '__pycache__/' \
   --exclude '.pytest_cache/' \
+  --exclude 'benchmark_metrics_*/' \
+  --exclude 'results/' \
+  --exclude 'logs/' \
   --exclude '*.log' \
+  --exclude 'client_*.log' \
+  --exclude 'server*.log' \
+  --exclude 'tao-bench-server-*.log' \
   --exclude '*.tar' \
   --exclude '*.tar.gz' \
   --exclude '*.tar.xz' \
@@ -70,12 +76,37 @@ for dir in benchpress packages/tao_bench benchmarks/tao_bench benchmarks/tao_ben
     --exclude '.git/' \
     --exclude '__pycache__/' \
     --exclude '.pytest_cache/' \
+    --exclude 'benchmark_metrics_*/' \
+    --exclude 'results/' \
+    --exclude 'logs/' \
     --exclude 'build-folly/' \
     --exclude 'buck-out/' \
     --exclude 'certs/*.key' \
     --exclude '*.log' \
+    --exclude 'client_*.log' \
+    --exclude 'server*.log' \
+    --exclude 'tao-bench-server-*.log' \
     "${DCPERF_DIR}/${dir}/" "${BUILD_CONTEXT}/DCPerf/${dir}/"
 done
+
+log "Removing generated metrics/log residue from build context"
+find "${BUILD_CONTEXT}/DCPerf" -maxdepth 1 -type d -name 'benchmark_metrics_*' -prune -exec rm -rf {} +
+rm -rf "${BUILD_CONTEXT}/DCPerf/results" "${BUILD_CONTEXT}/DCPerf/logs"
+find "${BUILD_CONTEXT}/DCPerf" -type d -name '__pycache__' -prune -exec rm -rf {} +
+find "${BUILD_CONTEXT}/DCPerf" -type d -name '.pytest_cache' -prune -exec rm -rf {} +
+find "${BUILD_CONTEXT}/DCPerf" -type f \( \
+  -name '*.log' -o \
+  -name 'client_*.log' -o \
+  -name 'server*.log' -o \
+  -name 'tao-bench-server-*.log' -o \
+  -name '*.tar' -o \
+  -name '*.tar.gz' -o \
+  -name '*.tar.xz' \
+\) -delete
+
+if find "${BUILD_CONTEXT}/DCPerf" -maxdepth 1 \( -name 'benchmark_metrics_*' -o -name 'results' -o -name 'logs' \) | grep -q .; then
+  die "Build context still contains generated DCPerf output directories"
+fi
 
 for lib in /usr/local/lib/libgflags* /usr/local/lib/libglog*; do
   if [[ -e "${lib}" || -L "${lib}" ]]; then
@@ -112,6 +143,13 @@ test -x ./benchpress_cli.py
 test -d benchmarks/tao_bench
 test -d benchmarks/tao_bench_autoscale
 test -d packages/tao_bench
+test ! -d results
+test ! -d logs
+if find . -maxdepth 1 \( -name "benchmark_metrics_*" -o -name "*.log" \) | grep -q .; then
+  echo "Image contains generated DCPerf output residue" >&2
+  find . -maxdepth 1 \( -name "benchmark_metrics_*" -o -name "*.log" \) >&2
+  exit 1
+fi
 openssl version
 ldconfig -p | grep -E "libgflags|libssl" >/dev/null
 python3 - <<PY

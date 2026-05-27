@@ -114,6 +114,7 @@ def render_env(args):
         "# Review these bindings before long experiments.",
         f'export CLAB_IMAGE="{args.image}"',
         f'export DCPERF_MOUNT="{args.dcperf_mount}"',
+        'export DCPERF_CODE_DIR="/workspace/DCPerf"',
         f'export RESULTS_ROOT="{args.results_root}"',
         f'export DCPERF_DIR="{args.dcperf_dir}"',
         f'export IBENCH_DIR="{args.ibench_dir}"',

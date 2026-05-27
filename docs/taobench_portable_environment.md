@@ -14,6 +14,10 @@ context and excludes historical run output:
 - `*.log`
 - Python caches and `.git/`
 
+The build now fails if generated output remains in the image. A valid image must
+not contain `/workspace/DCPerf/benchmark_metrics_*`, `/workspace/DCPerf/results`,
+`/workspace/DCPerf/logs`, or root-level DCPerf log files.
+
 Build the ready image:
 
 ```bash
@@ -66,9 +70,18 @@ bash scripts/build_taobench_image.sh
 ## Export And Transfer
 
 ```bash
-bash scripts/export_taobench_image.sh dcperf-taobench-ready.tar
-scp dcperf-taobench-ready.tar lilinzhen@sail3090:~
+bash scripts/export_taobench_image.sh
+scp /home/lilinzhen/colocate_lab/artifacts/dcperf-taobench-ready.tar lilinzhen@sail3090:~
 ```
+
+Do not store the tar file in this source repository. By default the export
+script writes to:
+
+```text
+/home/lilinzhen/colocate_lab/artifacts/dcperf-taobench-ready.tar
+```
+
+and refuses paths under the repository root.
 
 ## Import On A New Server
 
@@ -98,6 +111,18 @@ export RESULTS_ROOT="/home/lilinzhen/colocate_lab/results/cbs"
 export IBENCH_DIR="/home/lilinzhen/iBench"
 export SPEC_DIR="/home/lilinzhen/cpu2017"
 ```
+
+During each run, DCPerf/benchpress mutable state is placed under the mounted run
+directory:
+
+```text
+$RESULTS_ROOT/<run>/dcperf_state/server
+$RESULTS_ROOT/<run>/dcperf_state/loadgen
+```
+
+These directories hold `benchpress.log`, `benchmark_metrics_*`, and benchpress
+history/results for that run. `/workspace/DCPerf` remains read-only in spirit:
+it is the code and dependency tree, not the experiment output location.
 
 CPU and NUMA placement remains server-specific:
 

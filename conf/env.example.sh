@@ -13,6 +13,7 @@ export RESULTS_ROOT="/home/lilinzhen/colocate_lab/results/cbs"
 #   export DCPERF_MOUNT="0"
 export CLAB_IMAGE="clab-compute:latest"
 export DCPERF_MOUNT="${DCPERF_MOUNT:-1}"
+export DCPERF_CODE_DIR="/workspace/DCPerf"
 
 # Container names
 export SERVER_CONTAINER="clab-server"
