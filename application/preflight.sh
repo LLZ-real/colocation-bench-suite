@@ -19,6 +19,7 @@ CHECK_DOCKER_IMAGE="${CHECK_DOCKER_IMAGE:-1}"
 CHECK_IMAGE_CONTENT="${CHECK_IMAGE_CONTENT:-1}"
 CHECK_OFFLINE_PATHS="${CHECK_OFFLINE_PATHS:-1}"
 CHECK_DRY_RUN="${CHECK_DRY_RUN:-1}"
+DCPERF_MOUNT="${DCPERF_MOUNT:-1}"
 
 pass() {
   echo "[PASS] $*"
@@ -34,6 +35,19 @@ fail() {
 }
 
 status=0
+
+missing_required=0
+
+check_required_var() {
+  local name="$1"
+  if [[ -n "${!name+x}" && -n "${!name}" ]]; then
+    pass "config set: ${name}=${!name}"
+  else
+    fail "missing required config: ${name}" || true
+    status=1
+    missing_required=1
+  fi
+}
 
 check_cmd() {
   if command -v "$1" >/dev/null 2>&1; then
@@ -96,21 +110,67 @@ PY
 check_mems() {
   local label="$1"
   local mems="$2"
-  local nodes
-  nodes="$(ls -d /sys/devices/system/node/node* 2>/dev/null | sed 's/.*node//' | tr '\n' ' ')"
-  for node in ${mems//,/ }; do
-    if [[ " ${nodes} " != *" ${node} "* ]]; then
-      fail "${label} NUMA node missing: ${node}; available: ${nodes}" || status=1
-      return
-    fi
-  done
-  pass "${label} mems exists: ${mems}"
+  if python3 - "$label" "$mems" <<'PY'
+import sys
+from pathlib import Path
+
+label, mems = sys.argv[1], sys.argv[2]
+nodes = sorted(
+    int(p.name[4:])
+    for p in Path("/sys/devices/system/node").glob("node*")
+    if p.name[4:].isdigit()
+)
+selected = []
+for part in mems.split(","):
+    part = part.strip()
+    if not part:
+        continue
+    if "-" in part:
+        a, b = map(int, part.split("-", 1))
+        selected.extend(range(a, b + 1))
+    else:
+        selected.append(int(part))
+
+missing = [n for n in selected if n not in nodes]
+if missing:
+    print(f"{label}: missing NUMA nodes {missing}; available: {nodes}", file=sys.stderr)
+    sys.exit(1)
+PY
+  then
+    pass "${label} mems exists: ${mems}"
+  else
+    status=1
+  fi
 }
 
 echo "== Host commands =="
 for cmd in docker python3 lscpu numactl; do
   check_cmd "${cmd}"
 done
+
+echo
+echo "== Configuration =="
+for name in \
+  CLAB_IMAGE \
+  RESULTS_ROOT \
+  SERVER_CPUSET SERVER_MEMS \
+  LOADGEN_CPUSET LOADGEN_MEMS \
+  OFFLINE_CPUSET OFFLINE_MEMS; do
+  check_required_var "${name}"
+done
+if [[ "${DCPERF_MOUNT}" == "1" ]]; then
+  check_required_var "DCPERF_DIR"
+fi
+if [[ "${CHECK_OFFLINE_PATHS}" == "1" ]]; then
+  check_required_var "IBENCH_DIR"
+  check_required_var "SPEC_DIR"
+fi
+
+if [[ "${missing_required}" == "1" ]]; then
+  echo
+  fail "preflight stopped because required config is missing; fix ${ENV_FILE}" || true
+  exit 1
+fi
 
 echo
 echo "== Docker =="
@@ -127,7 +187,7 @@ if [[ "${CHECK_DOCKER_IMAGE}" == "1" ]]; then
     fail "docker image missing: ${CLAB_IMAGE}" || status=1
   fi
 
-  if [[ "${DCPERF_MOUNT:-1}" == "0" && "${CHECK_IMAGE_CONTENT}" == "1" ]]; then
+  if [[ "${DCPERF_MOUNT}" == "0" && "${CHECK_IMAGE_CONTENT}" == "1" ]]; then
     if docker run --rm "${CLAB_IMAGE}" bash -lc '
       set -euo pipefail
       cd /workspace/DCPerf
@@ -150,7 +210,7 @@ echo
 echo "== Paths =="
 mkdir -p "${RESULTS_ROOT}" 2>/dev/null || true
 check_dir "RESULTS_ROOT" "${RESULTS_ROOT}"
-if [[ "${DCPERF_MOUNT:-1}" == "1" ]]; then
+if [[ "${DCPERF_MOUNT}" == "1" ]]; then
   check_dir "DCPERF_DIR" "${DCPERF_DIR}"
 else
   pass "DCPERF_MOUNT=0, using image-baked /workspace/DCPerf"
