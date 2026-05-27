@@ -24,6 +24,19 @@ Build the ready image:
 bash scripts/build_taobench_image.sh
 ```
 
+Run this command from anywhere inside the repository, or from the repository
+root. Do not build the Dockerfile directly from `containers/` with:
+
+```bash
+docker build -f Dockerfile.dcperf-taobench -t dcperf-taobench:ready .
+```
+
+That direct command uses `containers/` as the Docker build context, so Docker
+cannot see the generated `DCPerf/` and `host-libs/` directories required by the
+Dockerfile. The build script creates a clean temporary context first, copies
+only the required DCPerf/TaoBench files, removes old metrics/log output, and
+then runs `docker build` on that generated context.
+
 If the server needs an HTTP proxy for apt/pip during Docker build:
 
 ```bash
@@ -65,6 +78,52 @@ Optional overrides:
 IMAGE_NAME=dcperf-taobench IMAGE_TAG=ready \
 DCPERF_DIR=/path/to/DCPerf \
 bash scripts/build_taobench_image.sh
+```
+
+## Bootstrap DCPerf On A Build Server
+
+If the target server will build the image locally instead of importing a tar, it
+needs a local DCPerf checkout with TaoBench installed. Use the application
+bootstrap wrapper instead of cloning and installing by hand:
+
+```bash
+cd /home/lilinzhen/colocation-bench-suite
+PROXY="http://127.0.0.1:7900" \
+DCPERF_DIR="/home/lilinzhen/colocate_lab/DCPerf" \
+bash application/bootstrap_dcperf_taobench.sh
+```
+
+The wrapper performs these steps:
+
+- clones `https://github.com/facebookresearch/DCPerf.git` if `DCPERF_DIR` does
+  not exist;
+- installs benchpress Python dependencies;
+- runs `./benchpress_cli.py install tao_bench_autoscale` when TaoBench binaries
+  are missing;
+- validates `tao_bench_server` and `tao_bench_client`;
+- calls `scripts/build_taobench_image.sh`.
+
+Useful controls:
+
+```bash
+DCPERF_REPO=https://github.com/facebookresearch/DCPerf.git
+DCPERF_REF=main
+UPDATE_EXISTING=1
+TAOBENCH_INSTALL=0
+BUILD_IMAGE=0
+REINSTALL_TAOBENCH=1
+```
+
+For example, clone/install only and skip image build:
+
+```bash
+BUILD_IMAGE=0 bash application/bootstrap_dcperf_taobench.sh
+```
+
+Or build from an already-installed checkout:
+
+```bash
+TAOBENCH_INSTALL=0 bash application/bootstrap_dcperf_taobench.sh
 ```
 
 ## Export And Transfer

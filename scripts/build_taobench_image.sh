@@ -4,6 +4,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CBS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+USER_IMAGE_NAME="${IMAGE_NAME:-}"
+USER_IMAGE_TAG="${IMAGE_TAG:-}"
+USER_DCPERF_DIR="${DCPERF_DIR:-}"
+USER_BUILD_CONTEXT="${BUILD_CONTEXT:-}"
+USER_KEEP_BUILD_CONTEXT="${KEEP_BUILD_CONTEXT:-}"
+USER_DOCKER_BUILD_NETWORK="${DOCKER_BUILD_NETWORK:-}"
+USER_PROXY="${PROXY:-${HTTP_PROXY:-${http_proxy:-}}}"
+USER_APT_MIRROR="${APT_MIRROR:-}"
+
 source "${CBS_ROOT}/scripts/common.sh"
 if [[ -f "${CBS_ROOT}/conf/env.sh" ]]; then
   source "${CBS_ROOT}/conf/env.sh"
@@ -11,15 +20,15 @@ elif [[ -f "${CBS_ROOT}/conf/env.example.sh" ]]; then
   source "${CBS_ROOT}/conf/env.example.sh"
 fi
 
-IMAGE_NAME="${IMAGE_NAME:-dcperf-taobench}"
-IMAGE_TAG="${IMAGE_TAG:-ready}"
+IMAGE_NAME="${USER_IMAGE_NAME:-${IMAGE_NAME:-dcperf-taobench}}"
+IMAGE_TAG="${USER_IMAGE_TAG:-${IMAGE_TAG:-ready}}"
 IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
-DCPERF_DIR="${DCPERF_DIR:-/home/lilinzhen/colocate_lab/DCPerf}"
-BUILD_CONTEXT="${BUILD_CONTEXT:-}"
-KEEP_BUILD_CONTEXT="${KEEP_BUILD_CONTEXT:-0}"
-DOCKER_BUILD_NETWORK="${DOCKER_BUILD_NETWORK:-host}"
-PROXY="${PROXY:-${HTTP_PROXY:-${http_proxy:-}}}"
-APT_MIRROR="${APT_MIRROR:-http://mirrors.aliyun.com/ubuntu}"
+DCPERF_DIR="${USER_DCPERF_DIR:-${DCPERF_DIR:-/home/lilinzhen/colocate_lab/DCPerf}}"
+BUILD_CONTEXT="${USER_BUILD_CONTEXT:-${BUILD_CONTEXT:-}}"
+KEEP_BUILD_CONTEXT="${USER_KEEP_BUILD_CONTEXT:-${KEEP_BUILD_CONTEXT:-0}}"
+DOCKER_BUILD_NETWORK="${USER_DOCKER_BUILD_NETWORK:-${DOCKER_BUILD_NETWORK:-host}}"
+PROXY="${USER_PROXY:-${PROXY:-${HTTP_PROXY:-${http_proxy:-}}}}"
+APT_MIRROR="${USER_APT_MIRROR:-${APT_MIRROR:-http://mirrors.aliyun.com/ubuntu}}"
 
 require_cmd docker
 require_cmd rsync

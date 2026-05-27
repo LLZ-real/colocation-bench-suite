@@ -38,6 +38,15 @@ export CLAB_IMAGE="dcperf-taobench:ready"
 export DCPERF_MOUNT="0"
 ```
 
+If the server will build the portable image locally and does not yet have a
+DCPerf checkout, bootstrap it first:
+
+```bash
+PROXY="http://127.0.0.1:7900" \
+DCPERF_DIR="/home/lilinzhen/colocate_lab/DCPerf" \
+bash application/bootstrap_dcperf_taobench.sh
+```
+
 Run a migration/preflight check:
 
 ```bash
@@ -118,7 +127,12 @@ read naturally in experiment notes.
 On a new server:
 
 ```bash
+# Option A: import a prebuilt image.
 bash scripts/import_taobench_image.sh dcperf-taobench-ready.tar
+
+# Option B: build locally from a cloned/installed DCPerf checkout.
+bash application/bootstrap_dcperf_taobench.sh
+
 python3 application/generate_env_from_topology.py --offline-policy same_smt --out conf/env.sh
 vim conf/env.sh
 bash application/preflight.sh

@@ -1,5 +1,11 @@
 FROM ubuntu:22.04
 
+# This Dockerfile expects a generated build context containing:
+#   ./DCPerf/
+#   ./host-libs/
+# Do not build it directly from colocation-bench-suite/containers.
+# Use: bash scripts/build_taobench_image.sh
+
 ARG http_proxy
 ARG https_proxy
 ARG HTTP_PROXY
