@@ -75,8 +75,9 @@ scp dcperf-taobench-ready.tar lilinzhen@sail3090:~
 ```bash
 ssh lilinzhen@sail3090
 bash scripts/import_taobench_image.sh ~/dcperf-taobench-ready.tar
-cp conf/env.example.sh conf/env.sh
+python3 application/generate_env_from_topology.py --offline-policy same_smt --out conf/env.sh
 vim conf/env.sh
+bash application/preflight.sh
 bash tools/check_sail3090_topology.sh
 ```
 

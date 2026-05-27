@@ -4,7 +4,14 @@ set -euo pipefail
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CBS_ROOT="$(cd "${APP_DIR}/.." && pwd)"
 
-source "${CBS_ROOT}/conf/env.sh"
+ENV_FILE="${ENV_FILE:-${CBS_ROOT}/conf/env.sh}"
+if [[ -f "${ENV_FILE}" ]]; then
+  source "${ENV_FILE}"
+elif [[ -f "${CBS_ROOT}/conf/env.sh" ]]; then
+  source "${CBS_ROOT}/conf/env.sh"
+else
+  source "${CBS_ROOT}/conf/env.example.sh"
+fi
 source "${CBS_ROOT}/scripts/common.sh"
 source "${CBS_ROOT}/scripts/cleanup.sh"
 

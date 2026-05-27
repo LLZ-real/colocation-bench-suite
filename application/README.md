@@ -23,6 +23,34 @@ python3 application/topology.py --format text
 python3 application/topology.py --format json
 ```
 
+Generate a starter `conf/env.sh` from the current host topology:
+
+```bash
+python3 application/generate_env_from_topology.py \
+  --offline-policy same_smt \
+  --out conf/env.sh
+```
+
+For the portable TaoBench image, keep:
+
+```bash
+export CLAB_IMAGE="dcperf-taobench:ready"
+export DCPERF_MOUNT="0"
+```
+
+Run a migration/preflight check:
+
+```bash
+bash application/preflight.sh
+```
+
+Check a generated env before replacing `conf/env.sh`:
+
+```bash
+python3 application/generate_env_from_topology.py --offline-policy cross_numa --out /tmp/cbs-env.sh
+ENV_FILE=/tmp/cbs-env.sh CHECK_OFFLINE_PATHS=0 bash application/preflight.sh
+```
+
 Preview a same-SMT TaoBench + iBench L3 run without starting containers:
 
 ```bash
@@ -84,3 +112,19 @@ when the matching enable variable is set.
 
 `OFFLINE_WORKLOAD` is accepted as an alias for `OFFLINE_TYPE` so commands can
 read naturally in experiment notes.
+
+## Migration Flow
+
+On a new server:
+
+```bash
+bash scripts/import_taobench_image.sh dcperf-taobench-ready.tar
+python3 application/generate_env_from_topology.py --offline-policy same_smt --out conf/env.sh
+vim conf/env.sh
+bash application/preflight.sh
+ACTION=dry-run bash application/run_taobench_colocation.sh
+```
+
+The generated env is only a starting point. Review network interface,
+`RESULTS_ROOT`, `IBENCH_DIR`, `SPEC_DIR`, and all CPU/NUMA bindings before a long
+experiment.
