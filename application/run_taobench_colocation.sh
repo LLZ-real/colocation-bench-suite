@@ -159,12 +159,18 @@ python3 "${SCRIPT_DIR}/topology.py" --format text > "${RUN_DIR}/machine_topology
 start_sudo_keepalive
 apply_resource_hooks_before_run
 
+taobench_volumes=("${RESULTS_ROOT}:/workspace/results")
+if [[ "${DCPERF_MOUNT:-1}" == "1" ]]; then
+  taobench_volumes=("${DCPERF_DIR}:/workspace/DCPerf" "${taobench_volumes[@]}")
+  log "Using host-mounted DCPerf: ${DCPERF_DIR} -> /workspace/DCPerf"
+else
+  log "Using image-baked DCPerf at /workspace/DCPerf"
+fi
+
 create_app_container server "${SERVER_CONTAINER}" "${SERVER_CPUSET}" "${SERVER_MEMS}" \
-  "${DCPERF_DIR}:/workspace/DCPerf" \
-  "${RESULTS_ROOT}:/workspace/results"
+  "${taobench_volumes[@]}"
 create_app_container loadgen "${LOADGEN_CONTAINER}" "${LOADGEN_CPUSET}" "${LOADGEN_MEMS}" \
-  "${DCPERF_DIR}:/workspace/DCPerf" \
-  "${RESULTS_ROOT}:/workspace/results"
+  "${taobench_volumes[@]}"
 create_app_container offline "${OFFLINE_CONTAINER}" "${OFFLINE_CPUSET}" "${OFFLINE_MEMS}" \
   "${IBENCH_DIR}:/workspace/iBench" \
   "${SPEC_DIR}:/workspace/cpu2017" \

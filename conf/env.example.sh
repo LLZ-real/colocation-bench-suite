@@ -8,7 +8,11 @@ export DCPERF_DIR="/home/lilinzhen/colocate_lab/DCPerf"
 export RESULTS_ROOT="/home/lilinzhen/colocate_lab/results/cbs"
 
 # Docker image
+# For portable TaoBench/DCPerf migration, use:
+#   export CLAB_IMAGE="dcperf-taobench:ready"
+#   export DCPERF_MOUNT="0"
 export CLAB_IMAGE="clab-compute:latest"
+export DCPERF_MOUNT="${DCPERF_MOUNT:-1}"
 
 # Container names
 export SERVER_CONTAINER="clab-server"
