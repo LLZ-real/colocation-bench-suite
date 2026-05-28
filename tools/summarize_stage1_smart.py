@@ -135,13 +135,75 @@ def expected_relation(exp_name: str, run_dir: Path) -> str:
     return ""
 
 
-def actual_relation(server_cpus: str, server_mems: str, offline_cpus: str, offline_mems: str) -> str:
-    offline_cpus = clean_cpuset(offline_cpus)
+def parse_smt_groups(lscpu_path: Path) -> Dict[int, set]:
+    """Parse lscpu -e output to build core -> {cpus} mapping. Only returns cores with >=2 CPUs."""
+    groups: Dict[int, set] = {}
+    if not lscpu_path.exists():
+        return groups
+    text = lscpu_path.read_text(errors="ignore")
+    header = None
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.split()
+        if parts[0] == "CPU":
+            header = [p.upper() for p in parts]
+            continue
+        if header is None:
+            continue
+        if len(parts) < len(header):
+            continue
+        row = dict(zip(header, parts))
+        try:
+            core = int(row.get("CORE", -1))
+            cpu = int(row.get("CPU", -1))
+        except ValueError:
+            continue
+        if core < 0 or cpu < 0:
+            continue
+        groups.setdefault(core, set()).add(cpu)
+    return {c: cpus for c, cpus in groups.items() if len(cpus) >= 2}
+
+
+def parse_cpuset(s: str) -> set:
+    """Parse a cpuset string like '0,1,2,64,65,66' into a set of ints."""
+    out = set()
+    for part in str(s or "").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            a, b = part.split("-", 1)
+            out.update(range(int(a), int(b) + 1))
+        else:
+            out.add(int(part))
+    return out
+
+
+def actual_relation(server_cpus: str, server_mems: str, offline_cpus: str, offline_mems: str,
+                    run_dir: Path = None) -> str:
     server_mems = str(server_mems or "").strip()
     offline_mems = str(offline_mems or "").strip()
 
-    if offline_cpus == "32,34,36,38,40,42,44,46":
-        return "same_smt"
+    # Check SMT sibling relation dynamically from saved topology
+    if run_dir is not None:
+        lscpu_path = run_dir / "machine_topology" / "lscpu_e.txt"
+        smt_groups = parse_smt_groups(lscpu_path)
+        if smt_groups:
+            s_cpus = parse_cpuset(server_cpus)
+            o_cpus = parse_cpuset(clean_cpuset(offline_cpus))
+            smt_shared_cores = 0
+            for core, cpus in smt_groups.items():
+                s_on_core = s_cpus & cpus
+                o_on_core = o_cpus & cpus
+                # Both server and offline have a thread on this physical core
+                if s_on_core and o_on_core and s_on_core != o_on_core:
+                    smt_shared_cores += 1
+            # If server and offline share SMT siblings on >=2 physical cores, it's same_smt
+            if smt_shared_cores >= 2:
+                return "same_smt"
+
     if server_mems and offline_mems:
         return "same_numa" if server_mems == offline_mems else "cross_numa"
     return ""
@@ -149,7 +211,7 @@ def actual_relation(server_cpus: str, server_mems: str, offline_cpus: str, offli
 
 def placement_info(exp_name: str, run_dir: Path, server_cpus: str, server_mems: str, offline_cpus: str, offline_mems: str) -> Dict[str, str]:
     expected = expected_relation(exp_name, run_dir)
-    actual = actual_relation(server_cpus, server_mems, offline_cpus, offline_mems)
+    actual = actual_relation(server_cpus, server_mems, offline_cpus, offline_mems, run_dir)
     relation = actual or expected
     valid = "1"
     warning = ""
@@ -517,7 +579,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default=str(DEFAULT_RESULTS_ROOT))
     ap.add_argument("--include", action="append", default=[], help="glob pattern under root, e.g. 'stage1_place_*'")
-    ap.add_argument("--exclude", action="append", default=["smoke*", "*pmu*"], help="glob pattern by run dir basename")
+    ap.add_argument("--exclude", action="append", default=["*smoke*", "*pmu*"], help="glob pattern by run dir basename")
     ap.add_argument("--out", default=str(DEFAULT_OUT))
     ap.add_argument("--agg-out", default=str(DEFAULT_AGG_OUT))
     ap.add_argument("--baseline-mode", choices=["nearest", "run-median"], default="nearest")
@@ -531,6 +593,7 @@ def main() -> None:
         "stage1_place_cross_numa_*",
         "stage1_place_same_smt_*",
         "stage1_single_*",
+        "stage1_sail3090_*",
     ]
 
     run_dirs = []
