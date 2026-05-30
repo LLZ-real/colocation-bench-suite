@@ -2,100 +2,161 @@
 set -euo pipefail
 
 # ============================================================
-# Stage 1-A Master Runner: one command to run all experiments.
+# Stage 1-A Master Runner (v2 — supports ibench / spec / mixed).
 #
 # Usage:
-#   bash experiments/data_collection_experiment/run_all.sh [mode]
-#
-# Modes:
-#   ibench     iBench only (3 placements x 45 conditions, ~8h)
-#   spec       SPEC only  (3 placements x 57 conditions, ~15h)
-#   all        Everything (default, ~24h)
-#   smoke      Quick smoke test (~5min)
-#   list       Print what would run, don't execute
-#
-# Resume: re-run the same command to skip already-completed placements.
+#   bash experiments/data_collection_experiment/run_all.sh spec              # all 3 placements
+#   bash experiments/data_collection_experiment/run_all.sh spec-same_numa    # single placement
+#   bash experiments/data_collection_experiment/run_all.sh ibench
+#   bash experiments/data_collection_experiment/run_all.sh ibench-same_numa
+#   bash experiments/data_collection_experiment/run_all.sh smoke
+#   bash experiments/data_collection_experiment/run_all.sh list
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CBS_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-MODE="${1:-all}"
+MODE="${1:-list}"
 
 # ----------------------------
-# Configuration
+# Shared defaults (override via env)
 # ----------------------------
 
 CLAB_IMAGE="${CLAB_IMAGE:-dcperf-taobench:ready}"
 DCPERF_MOUNT="${DCPERF_MOUNT:-0}"
 RESULTS_ROOT="${RESULTS_ROOT:-/home/lilinzhen/colocate_lab/results/cbs}"
+
+SERVER_CPUSET="${SERVER_CPUSET:-0,1,2,3,4,5,6,7}"
+SERVER_MEMS="${SERVER_MEMS:-0}"
+LOADGEN_CPUSET="${LOADGEN_CPUSET:-32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47}"
+LOADGEN_MEMS="${LOADGEN_MEMS:-1}"
+
+CLIENTS_PER_THREAD="${CLIENTS_PER_THREAD:-900}"
+CLIENT_TEST_TIME="${CLIENT_TEST_TIME:-60}"
+CLIENT_WARMUP_TIME="${CLIENT_WARMUP_TIME:-120}"
+PREWARM_ROUNDS="${PREWARM_ROUNDS:-8}"
+PREWARM_TEST_TIME="${PREWARM_TEST_TIME:-60}"
+
+TAO_SERVER_WARMUP_TIME="${TAO_SERVER_WARMUP_TIME:-2400}"
+
+MEASURE_REPEATS="${MEASURE_REPEATS:-1}"
+MEASURE_GAP="${MEASURE_GAP:-5}"
+SPEC_CONFIG="${SPEC_CONFIG:-my_test.cfg}"
+BASELINE_INTERVAL="${BASELINE_INTERVAL:-10}"
+
 MATRIX_DIR="${CBS_ROOT}/docs"
 
-SERVER_CPUSET="0,1,2,3,4,5,6,7"
-SERVER_MEMS="0"
-LOADGEN_CPUSET="32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47"
-LOADGEN_MEMS="1"
-
-CLIENTS_PER_THREAD=900
-CLIENT_TEST_TIME=60
-CLIENT_WARMUP_TIME=120
-PREWARM_ROUNDS=8
-PREWARM_TEST_TIME=60
-
-TAO_SERVER_WARMUP_TIME=2400
-SERVER_BOOTSTRAP_WAIT=180
-OFFLINE_STABILIZE_WAIT=30
-OFFLINE_COOLDOWN_WAIT=5
-BASELINE_INTERVAL=10
-
-MEASURE_REPEATS=1
-MEASURE_GAP=5
-
-SPEC_CONFIG="my_test.cfg"
-
-# iBench: 45 conditions, ~3.6h per placement (client 120s warmup + 60s test)
-IBENCH_TAO_TEST_TIME=18000
-# SPEC: 57 conditions, ~4.5h per placement
-SPEC_TAO_TEST_TIME=21600
-
 # ----------------------------
-# Matrix generation
+# Per-mode overrides
 # ----------------------------
 
-generate_matrices() {
-  local gen="${CBS_ROOT}/tools/generate_stage1_matrix.py"
-  echo "[generate] creating iBench matrix (force regenerate)..."
-  python3 "${gen}" --mode ibench --out "${MATRIX_DIR}/stage1_ibench_matrix.csv"
-  echo "[generate] creating SPEC matrix (force regenerate)..."
-  python3 "${gen}" --mode spec --out "${MATRIX_DIR}/stage1_spec_matrix.csv"
+case "${MODE%%-*}" in
+  spec)
+    TAO_SERVER_TEST_TIME="${TAO_SERVER_TEST_TIME:-18000}"
+    SERVER_BOOTSTRAP_WAIT="${SERVER_BOOTSTRAP_WAIT:-180}"
+    OFFLINE_STABILIZE_WAIT="${OFFLINE_STABILIZE_WAIT:-90}"
+    OFFLINE_COOLDOWN_WAIT="${OFFLINE_COOLDOWN_WAIT:-5}"
+    STAGE1_MATRIX="${MATRIX_DIR}/stage1_spec_matrix.csv"
+    STAGE1_GEN_ARGS="--mode spec"
+    STAGE1_PREFIX="stage1_sail3090_spec"
+    ;;
+  ibench)
+    TAO_SERVER_TEST_TIME="${TAO_SERVER_TEST_TIME:-18000}"
+    SERVER_BOOTSTRAP_WAIT="${SERVER_BOOTSTRAP_WAIT:-180}"
+    OFFLINE_STABILIZE_WAIT="${OFFLINE_STABILIZE_WAIT:-30}"
+    OFFLINE_COOLDOWN_WAIT="${OFFLINE_COOLDOWN_WAIT:-5}"
+    STAGE1_MATRIX="${MATRIX_DIR}/stage1_ibench_keepers.csv"
+    STAGE1_GEN_ARGS="--mode ibench"
+    STAGE1_PREFIX="stage1_sail3090_ibench"
+    ;;
+  smoke)
+    TAO_SERVER_TEST_TIME="${TAO_SERVER_TEST_TIME:-1200}"
+    SERVER_BOOTSTRAP_WAIT="${SERVER_BOOTSTRAP_WAIT:-30}"
+    OFFLINE_STABILIZE_WAIT="${OFFLINE_STABILIZE_WAIT:-60}"
+    OFFLINE_COOLDOWN_WAIT="${OFFLINE_COOLDOWN_WAIT:-2}"
+    CLIENTS_PER_THREAD=900
+    CLIENT_TEST_TIME=10
+    CLIENT_WARMUP_TIME=5
+    PREWARM_ROUNDS=2
+    PREWARM_TEST_TIME=10
+    TAO_SERVER_WARMUP_TIME=60
+    BASELINE_INTERVAL=10
+    STAGE1_MATRIX="/tmp/stage1_smoke_matrix.csv"
+    STAGE1_GEN_ARGS="--mode smoke"
+    STAGE1_PREFIX="stage1_smoke"
+    ;;
+  list)
+    echo "Usage: bash run_all.sh [spec|ibench|smoke|list]"
+    exit 0
+    ;;
+  *)
+    echo "Unknown mode: ${MODE}"
+    echo "Usage: bash experiments/data_collection_experiment/run_all.sh [spec|ibench|smoke|list]"
+    exit 1
+    ;;
+esac
+
+# ----------------------------
+# Placement dispatch
+# ----------------------------
+
+PLACEMENTS=("same_numa" "cross_numa" "same_smt")
+
+if [[ "${MODE}" == *-* ]]; then
+  # Single-placement mode (e.g. "spec-same_numa")
+  TARGET="${MODE#*-}"
+  PLACEMENTS=("${TARGET}")
+fi
+
+# ----------------------------
+# Generate matrix
+# ----------------------------
+
+generate_matrix() {
+  local gen="${CBS_ROOT}/tools/generate_stage1_full_matrix.py"
+  echo "[generate] creating matrix: ${STAGE1_GEN_ARGS} → ${STAGE1_MATRIX}"
+  python3 "${gen}" ${STAGE1_GEN_ARGS} --out "${STAGE1_MATRIX}"
 }
 
 # ----------------------------
-# Run a single experiment (with resume support)
+# Resume check: if a placement already has a summary.csv with all conditions, skip
 # ----------------------------
-
-DONE_DIR="${RESULTS_ROOT}/.stage1_done_placements"
-mkdir -p "${DONE_DIR}"
 
 is_placement_done() {
-  [[ -f "${DONE_DIR}/$1" ]]
+  local exp_name="$1"
+  # Find latest run dir for this exp_name
+  local rundir
+  rundir=$(ls -dt "${RESULTS_ROOT}/${exp_name}_"* 2>/dev/null | head -1)
+  if [[ -z "${rundir}" ]]; then
+    return 1  # no run dir exists → not done
+  fi
+  local summary="${rundir}/summary.csv"
+  if [[ ! -f "${summary}" ]]; then
+    return 1  # no summary → not done
+  fi
+  # Count completed rows (exclude header)
+  local completed
+  completed=$(tail -n +2 "${summary}" 2>/dev/null | wc -l)
+  local expected
+  expected=$(tail -n +2 "${STAGE1_MATRIX}" 2>/dev/null | grep -cv '^[[:space:]]*$')
+  if [[ "${completed}" -ge "${expected}" && "${expected}" -gt 0 ]]; then
+    return 0  # all conditions done
+  fi
+  return 1
 }
 
-mark_placement_done() {
-  touch "${DONE_DIR}/$1"
-  echo "[done] placement $1 marked complete"
-}
+# ----------------------------
+# Run helpers
+# ----------------------------
 
 run_one() {
   local placement="$1"
-  local matrix_file="$2"
-  local exp_name="$3"
-  local tao_test_time="$4"
+  local exp_name="${STAGE1_PREFIX}_${placement}"
 
   if is_placement_done "${exp_name}"; then
     echo ""
     echo "================================================================================"
-    echo "  SKIP: ${exp_name} (already completed)"
+    echo "  SKIP: ${exp_name} (all conditions already completed)"
     echo "================================================================================"
     return 0
   fi
@@ -104,12 +165,13 @@ run_one() {
   echo "================================================================================"
   echo "  START: ${exp_name}"
   echo "  Placement: ${placement}"
-  echo "  Matrix:    ${matrix_file}"
+  echo "  Matrix:    ${STAGE1_MATRIX}"
+  echo "  Stabilize: ${OFFLINE_STABILIZE_WAIT}s"
   echo "  Started:   $(date -Iseconds)"
   echo "================================================================================"
 
   local ec=0
-  MATRIX_FILE="${matrix_file}" \
+  MATRIX_FILE="${STAGE1_MATRIX}" \
     PLACEMENT="${placement}" \
     EXP_NAME="${exp_name}" \
     CLAB_IMAGE="${CLAB_IMAGE}" \
@@ -125,7 +187,7 @@ run_one() {
     PREWARM_ROUNDS="${PREWARM_ROUNDS}" \
     PREWARM_TEST_TIME="${PREWARM_TEST_TIME}" \
     TAO_SERVER_WARMUP_TIME="${TAO_SERVER_WARMUP_TIME}" \
-    TAO_SERVER_TEST_TIME="${tao_test_time}" \
+    TAO_SERVER_TEST_TIME="${TAO_SERVER_TEST_TIME}" \
     SERVER_BOOTSTRAP_WAIT="${SERVER_BOOTSTRAP_WAIT}" \
     OFFLINE_STABILIZE_WAIT="${OFFLINE_STABILIZE_WAIT}" \
     OFFLINE_COOLDOWN_WAIT="${OFFLINE_COOLDOWN_WAIT}" \
@@ -134,10 +196,10 @@ run_one() {
     MEASURE_GAP="${MEASURE_GAP}" \
     SPEC_CONFIG="${SPEC_CONFIG}" \
     bash "${SCRIPT_DIR}/stage1_sweep_clean.sh" || ec=$?
+
   echo "================================================================================"
   if [[ "${ec}" == "0" ]]; then
     echo "  DONE:  ${exp_name}"
-    mark_placement_done "${exp_name}"
   else
     echo "  FAIL:  ${exp_name} (exit code ${ec})"
   fi
@@ -146,71 +208,29 @@ run_one() {
 }
 
 # ----------------------------
-# Smoke test
+# Main
 # ----------------------------
 
-run_smoke() {
-  echo "[smoke] creating test matrix..."
-  local smoke_csv="/tmp/stage1_smoke_matrix.csv"
-  cat > "${smoke_csv}" <<'EOF'
-condition_id,offline_type,offline_param,offline_intensity,offline_label,spec_size,spec_copies,spec_bench,workload_category,resource_profile
-ibench_cpu_w1_a30,ibench_cpu,1,30,w1_a30,,,,ibench,cpu
-none_baseline,none,,,none,,,,none,
-EOF
-
-  echo "[smoke] running quick verification (same_numa only)..."
-  run_one "same_numa" "${smoke_csv}" "stage1_smoke" 600
-}
-
-# ----------------------------
-# Main dispatch
-# ----------------------------
-
-echo "=== Stage 1-A Master Runner ==="
-echo "Mode: ${MODE}"
-echo "Started: $(date -Iseconds)"
+echo "=== Stage 1-A Runner ==="
+echo "Mode:     ${MODE}"
+echo "Placements: ${PLACEMENTS[*]}"
+echo "Started:  $(date -Iseconds)"
 echo
 
-generate_matrices
+# Guard: refuse if another experiment's containers are still alive
+if docker ps --format '{{.Names}}' 2>/dev/null | grep -qE '^clab-(server|loadgen|offline)$'; then
+  echo "[ERROR] Containers clab-server/clab-loadgen/clab-offline already exist."
+  echo "        Another experiment may still be running. Stop it first, or run:"
+  echo "        docker rm -f clab-server clab-loadgen clab-offline"
+  exit 1
+fi
 
-case "${MODE}" in
-  smoke)
-    run_smoke || true
-    ;;
-  list)
-    echo "Would run:"
-    echo "  1. same_numa  iBench  (${MATRIX_DIR}/stage1_ibench_matrix.csv)"
-    echo "  2. cross_numa iBench"
-    echo "  3. same_smt   iBench"
-    echo "  4. same_numa  SPEC    (${MATRIX_DIR}/stage1_spec_matrix.csv)"
-    echo "  5. cross_numa SPEC"
-    echo "  6. same_smt   SPEC"
-    ;;
-  ibench)
-    run_one same_numa  "${MATRIX_DIR}/stage1_ibench_matrix.csv" "stage1_sail3090_ibench_same_numa"  "${IBENCH_TAO_TEST_TIME}" || true
-    run_one cross_numa "${MATRIX_DIR}/stage1_ibench_matrix.csv" "stage1_sail3090_ibench_cross_numa" "${IBENCH_TAO_TEST_TIME}" || true
-    run_one same_smt   "${MATRIX_DIR}/stage1_ibench_matrix.csv" "stage1_sail3090_ibench_same_smt"   "${IBENCH_TAO_TEST_TIME}" || true
-    ;;
-  spec)
-    run_one same_numa  "${MATRIX_DIR}/stage1_spec_matrix.csv" "stage1_sail3090_spec_same_numa"  "${SPEC_TAO_TEST_TIME}" || true
-    run_one cross_numa "${MATRIX_DIR}/stage1_spec_matrix.csv" "stage1_sail3090_spec_cross_numa" "${SPEC_TAO_TEST_TIME}" || true
-    run_one same_smt   "${MATRIX_DIR}/stage1_spec_matrix.csv" "stage1_sail3090_spec_same_smt"   "${SPEC_TAO_TEST_TIME}" || true
-    ;;
-  all)
-    run_one same_numa  "${MATRIX_DIR}/stage1_ibench_matrix.csv" "stage1_sail3090_ibench_same_numa"  "${IBENCH_TAO_TEST_TIME}" || true
-    run_one cross_numa "${MATRIX_DIR}/stage1_ibench_matrix.csv" "stage1_sail3090_ibench_cross_numa" "${IBENCH_TAO_TEST_TIME}" || true
-    run_one same_smt   "${MATRIX_DIR}/stage1_ibench_matrix.csv" "stage1_sail3090_ibench_same_smt"   "${IBENCH_TAO_TEST_TIME}" || true
-    run_one same_numa  "${MATRIX_DIR}/stage1_spec_matrix.csv"   "stage1_sail3090_spec_same_numa"    "${SPEC_TAO_TEST_TIME}" || true
-    run_one cross_numa "${MATRIX_DIR}/stage1_spec_matrix.csv"   "stage1_sail3090_spec_cross_numa"   "${SPEC_TAO_TEST_TIME}" || true
-    run_one same_smt   "${MATRIX_DIR}/stage1_spec_matrix.csv"   "stage1_sail3090_spec_same_smt"     "${SPEC_TAO_TEST_TIME}" || true
-    ;;
-  *)
-    echo "Unknown mode: ${MODE}"
-    echo "Usage: bash experiments/data_collection_experiment/run_all.sh [ibench|spec|all|smoke|list]"
-    exit 1
-    ;;
-esac
+generate_matrix
+
+for pl in "${PLACEMENTS[@]}"; do
+  run_one "${pl}" || true
+done
 
 echo ""
-echo "=== Stage 1-A Master Runner: ALL DONE ==="
+echo "=== ALL DONE ==="
 echo "Ended: $(date -Iseconds)"

@@ -124,6 +124,7 @@ on_exit() {
   cleanup_sudo_keepalive || true
   cleanup_offline || true
   cleanup_taobench || true
+  docker rm -f "${SERVER_CONTAINER}" "${LOADGEN_CONTAINER}" "${OFFLINE_CONTAINER}" 2>/dev/null || true
   exit "${code}"
 }
 
@@ -133,6 +134,7 @@ on_interrupt() {
   cleanup_sudo_keepalive || true
   cleanup_offline || true
   cleanup_taobench || true
+  docker rm -f "${SERVER_CONTAINER}" "${LOADGEN_CONTAINER}" "${OFFLINE_CONTAINER}" 2>/dev/null || true
   exit 130
 }
 
@@ -470,11 +472,19 @@ run_client_and_parse() {
 
   log "Client run: phase=${phase_label}, condition=${condition_id}, repeat=${repeat_id}, clients=${clients}, test_time=${test_time}"
 
-  bash "${CBS_ROOT}/online/taobench/run_client.sh" \
+  # Timeout = warmup + test + 2min buffer to prevent hanging if server dies
+  local deadline=$((CLIENT_WARMUP_TIME + test_time + 120))
+
+  timeout "${deadline}" bash "${CBS_ROOT}/online/taobench/run_client.sh" \
     "${clients}" \
     "${test_time}" \
     "${log_file}" || {
-      log "WARNING: client run failed for ${condition_id}"
+      local ec=$?
+      if [[ "${ec}" == "124" ]]; then
+        log "ERROR: client run timed out after ${deadline}s for ${condition_id}"
+      else
+        log "WARNING: client run failed (exit ${ec}) for ${condition_id}"
+      fi
       return 1
     }
 
@@ -835,6 +845,13 @@ start_taobench_server
 full_prewarm
 
 run_baseline_checkpoint "initial"
+
+# Verify baseline QPS is valid (guard against dead server / port conflict)
+_baseline_qps=$(tail -1 "${SUMMARY}" | awk -F',' '{print $18}' 2>/dev/null || echo 0)
+if [[ "${_baseline_qps}" == "0.0" || "${_baseline_qps}" == "0" || -z "${_baseline_qps}" ]]; then
+  die "Baseline QPS is ${_baseline_qps:-0}. Server appears dead or not accepting connections. Check server logs in ${RUN_DIR}/logs/"
+fi
+log "Baseline QPS validated: ${_baseline_qps}"
 
 run_sweep
 
